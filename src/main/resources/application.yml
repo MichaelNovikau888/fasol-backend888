@@ -2,7 +2,6 @@ spring:
   application:
     name: fasol-backend
 
-
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/fasol}
     username: ${DB_USER:fasol}
@@ -22,7 +21,7 @@ spring:
         default_schema: public
 
   flyway:
-    enabled: off
+    enabled: true
     locations: classpath:db/migration
 
   kafka:
