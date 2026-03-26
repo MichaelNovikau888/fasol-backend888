@@ -1,0 +1,93 @@
+spring:
+  application:
+    name: fasol-backend
+
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/fasol}
+    username: ${DB_USER:fasol}
+    password: ${DB_PASSWORD:fasol}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: public
+
+  flyway:
+    enabled: off
+    locations: classpath:db/migration
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+        max.in.flight.requests.per.connection: 1
+    consumer:
+      group-id: fasol-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      enable-auto-commit: false
+      properties:
+        spring.json.trusted.packages: "com.fasol.event"
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+#      password: ${REDIS_PASSWORD:}
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:fasol-super-secret-key-change-in-production-min-32-chars}
+    expiration-ms: 86400000
+
+  booking:
+    cancel-deadline-hours: 24
+    group-max-participants: 3
+
+  kafka:
+    topics:
+      booking-events: booking-events
+      notification-events: notification-events
+      payment-events: payment-events
+
+  outbox:
+    poll-interval-ms: 2000
+    batch-size: 100
+    max-retries: 3
+    kafka-timeout-seconds: 5
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.fasol: WARN
+    org.springframework.kafka: INFO
+    org.springframework.security: INFO

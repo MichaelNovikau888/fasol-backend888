@@ -1,0 +1,209 @@
+{
+  "__inputs": [{ "name": "DS_PROMETHEUS", "label": "Prometheus", "type": "datasource", "pluginId": "prometheus" }],
+  "__requires": [
+    { "type": "grafana", "id": "grafana", "name": "Grafana", "version": "10.0.0" },
+    { "type": "datasource", "id": "prometheus", "name": "Prometheus", "version": "1.0.0" }
+  ],
+  "title": "Fa Sol — CRM воронка продаж",
+  "uid": "fasol-crm-v2",
+  "version": 2,
+  "schemaVersion": 38,
+  "refresh": "30s",
+  "time": { "from": "now-7d", "to": "now" },
+  "tags": ["fasol", "crm", "sales"],
+  "panels": [
+
+    {
+      "id": 1, "title": "📋 Заявок на пробный (всего)",
+      "type": "stat", "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } } },
+      "targets": [{ "expr": "trial_request_total", "legendFormat": "Заявок", "refId": "A" }]
+    },
+
+    {
+      "id": 2, "title": "✅ Пришли на пробный урок",
+      "type": "stat", "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] } } },
+      "targets": [{ "expr": "trial_status_completed_total", "legendFormat": "Состоялось", "refId": "A" }]
+    },
+
+    {
+      "id": 3, "title": "🛒 Купили курс после пробного",
+      "type": "stat", "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] } } },
+      "targets": [{ "expr": "trial_conversion_total", "legendFormat": "Купили", "refId": "A" }]
+    },
+
+    {
+      "id": 4, "title": "🎯 Конверсия: заявка → пробный",
+      "type": "stat", "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "percent", "decimals": 1,
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "red", "value": null }, { "color": "yellow", "value": 40 }, { "color": "green", "value": 70 }
+        ] } } },
+      "targets": [{ "expr": "trial_status_completed_total / clamp_min(trial_request_total, 1) * 100", "legendFormat": "%", "refId": "A" }]
+    },
+
+    {
+      "id": 5, "title": "💰 Конверсия: пробный → покупка",
+      "type": "stat", "gridPos": { "x": 16, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "percent", "decimals": 1,
+        "thresholds": { "mode": "absolute", "steps": [
+          { "color": "red", "value": null }, { "color": "yellow", "value": 25 }, { "color": "green", "value": 50 }
+        ] } } },
+      "targets": [{ "expr": "trial_conversion_total / clamp_min(trial_status_completed_total, 1) * 100", "legendFormat": "%", "refId": "A" }]
+    },
+
+    {
+      "id": 6, "title": "🔔 Необработанных заявок (NEW)",
+      "type": "stat", "gridPos": { "x": 20, "y": 0, "w": 4, "h": 4 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "thresholds": { "mode": "absolute", "steps": [
+          { "color": "green", "value": null }, { "color": "yellow", "value": 5 }, { "color": "red", "value": 10 }
+        ] } } },
+      "targets": [{ "expr": "trial_queue_size", "legendFormat": "В очереди", "refId": "A" }]
+    },
+
+    {
+      "id": 10, "title": "🎯 Воронка продаж — 3 ключевых шага",
+      "type": "barchart", "gridPos": { "x": 0, "y": 4, "w": 10, "h": 10 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "description": "Три главных числа: сколько подали заявку, сколько пришли на пробный, сколько купили курс",
+      "options": {
+        "orientation": "horizontal", "barWidth": 0.6, "groupWidth": 0.7, "fillOpacity": 80,
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "single" }
+      },
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "fillOpacity": 80 } } },
+      "targets": [
+        { "expr": "trial_request_total", "legendFormat": "1. Подали заявку на пробный", "refId": "A", "instant": true },
+        { "expr": "trial_status_completed_total", "legendFormat": "2. Пришли на пробный урок", "refId": "B", "instant": true },
+        { "expr": "trial_conversion_total", "legendFormat": "3. Купили курс после пробного", "refId": "C", "instant": true }
+      ]
+    },
+
+    {
+      "id": 11, "title": "📊 Полная воронка — все этапы",
+      "type": "table", "gridPos": { "x": 10, "y": 4, "w": 14, "h": 10 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": { "showHeader": true },
+      "fieldConfig": {
+        "defaults": { "decimals": 1 },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Value" }, "properties": [
+            { "id": "unit", "value": "none" }, { "id": "custom.width", "value": 100 }
+          ]},
+          { "matcher": { "id": "byName", "options": "__name__" }, "properties": [
+            { "id": "custom.hidden", "value": true }
+          ]}
+        ]
+      },
+      "targets": [
+        { "expr": "trial_request_total", "legendFormat": "Подали заявку на пробный", "refId": "A", "instant": true },
+        { "expr": "trial_status_contacted_total", "legendFormat": "Менеджер позвонил", "refId": "B", "instant": true },
+        { "expr": "trial_status_scheduled_total", "legendFormat": "Урок назначен", "refId": "C", "instant": true },
+        { "expr": "trial_status_completed_total", "legendFormat": "✅ Пришли на пробный", "refId": "D", "instant": true },
+        { "expr": "trial_conversion_total", "legendFormat": "🛒 Купили курс (после пробного)", "refId": "E", "instant": true },
+        { "expr": "course_purchased_total", "legendFormat": "Куплено курсов (всего)", "refId": "F", "instant": true },
+        { "expr": "trial_status_cancelled_total", "legendFormat": "Отменено заявок", "refId": "G", "instant": true },
+        { "expr": "trial_status_contacted_total / clamp_min(trial_request_total, 1) * 100", "legendFormat": "% Заявка → Звонок", "refId": "H", "instant": true },
+        { "expr": "trial_status_completed_total / clamp_min(trial_request_total, 1) * 100", "legendFormat": "% Заявка → Пришёл на урок", "refId": "I", "instant": true },
+        { "expr": "trial_conversion_total / clamp_min(trial_status_completed_total, 1) * 100", "legendFormat": "% Пришёл → Купил курс", "refId": "J", "instant": true }
+      ]
+    },
+
+    {
+      "id": 20, "title": "📈 Динамика заявок и пробных уроков",
+      "type": "timeseries", "gridPos": { "x": 0, "y": 14, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 15, "drawStyle": "line" } } },
+      "targets": [
+        { "expr": "increase(trial_request_total[$__rate_interval])", "legendFormat": "Новых заявок", "refId": "A" },
+        { "expr": "increase(trial_status_completed_total[$__rate_interval])", "legendFormat": "Пришли на пробный", "refId": "B" },
+        { "expr": "increase(trial_conversion_total[$__rate_interval])", "legendFormat": "Купили курс после пробного", "refId": "C" },
+        { "expr": "increase(trial_status_cancelled_total[$__rate_interval])", "legendFormat": "Отменено", "refId": "D" }
+      ]
+    },
+
+    {
+      "id": 21, "title": "💰 Продажи и оплаты — динамика",
+      "type": "timeseries", "gridPos": { "x": 12, "y": 14, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 15, "drawStyle": "line" } } },
+      "targets": [
+        { "expr": "increase(course_purchased_total[$__rate_interval])", "legendFormat": "Всего покупок курсов", "refId": "A" },
+        { "expr": "increase(trial_conversion_total[$__rate_interval])", "legendFormat": "Покупок после пробного", "refId": "B" },
+        { "expr": "increase(course_repeat_purchase_total[$__rate_interval])", "legendFormat": "Повторных покупок", "refId": "C" },
+        { "expr": "increase(payment_received_total[$__rate_interval])", "legendFormat": "Оплат получено", "refId": "D" }
+      ]
+    },
+
+    {
+      "id": 22, "title": "📅 Записей на занятия в день",
+      "type": "timeseries", "gridPos": { "x": 0, "y": 22, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 20, "drawStyle": "bars" } } },
+      "targets": [
+        { "expr": "increase(bookings_daily_total[$__rate_interval])", "legendFormat": "Новых записей", "refId": "A" },
+        { "expr": "increase(booking_cancelled_total[$__rate_interval])", "legendFormat": "Отменено занятий", "refId": "B" }
+      ]
+    },
+
+    {
+      "id": 23, "title": "👥 Активных студентов и очередь заявок",
+      "type": "timeseries", "gridPos": { "x": 12, "y": 22, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 15, "drawStyle": "line" } } },
+      "targets": [
+        { "expr": "students_active_count", "legendFormat": "Активных студентов", "refId": "A" },
+        { "expr": "trial_queue_size", "legendFormat": "Необработанных заявок (NEW)", "refId": "B" }
+      ]
+    },
+
+    {
+      "id": 30, "title": "⚡ Технические метрики",
+      "type": "timeseries", "gridPos": { "x": 0, "y": 30, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2, "fillOpacity": 10, "drawStyle": "line" } } },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(booking_duration_seconds_bucket[$__rate_interval]))", "legendFormat": "Бронирование p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, rate(booking_duration_seconds_bucket[$__rate_interval]))", "legendFormat": "Бронирование p95", "refId": "B" },
+        { "expr": "increase(booking_slot_conflict_total[$__rate_interval])", "legendFormat": "Конфликтов слотов", "refId": "C" }
+      ]
+    },
+
+    {
+      "id": 31, "title": "📬 Outbox / Kafka",
+      "type": "timeseries", "gridPos": { "x": 12, "y": 30, "w": 12, "h": 8 },
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": { "defaults": { "custom": { "lineWidth": 2, "fillOpacity": 10, "drawStyle": "line" } } },
+      "targets": [
+        { "expr": "outbox_queue_size", "legendFormat": "Необработанных событий", "refId": "A" },
+        { "expr": "increase(outbox_publish_success_total[$__rate_interval])", "legendFormat": "Опубликовано", "refId": "B" },
+        { "expr": "increase(outbox_publish_failed_total[$__rate_interval])", "legendFormat": "Ошибок", "refId": "C" },
+        { "expr": "increase(outbox_dead_letter_total[$__rate_interval])", "legendFormat": "Dead letter", "refId": "D" }
+      ]
+    }
+
+  ],
+  "templating": {
+    "list": [{ "name": "DS_PROMETHEUS", "type": "datasource", "pluginId": "prometheus", "hide": 0, "label": "Prometheus" }]
+  }
+}

@@ -1,0 +1,5 @@
+package com.fasol.exception;
+
+public class SlotFullException extends RuntimeException {
+    public SlotFullException(String msg) { super(msg); }
+}
