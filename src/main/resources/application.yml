@@ -1,7 +1,6 @@
 spring:
   application:
     name: fasol-backend
-
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/fasol}
     username: ${DB_USER:fasol}
@@ -10,7 +9,6 @@ spring:
       maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 30000
-
   jpa:
     hibernate:
       ddl-auto: validate
@@ -19,11 +17,9 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         default_schema: public
-
   flyway:
     enabled: off
     locations: classpath:db/migration
-
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     producer:
@@ -44,7 +40,6 @@ spring:
         spring.json.trusted.packages: "com.fasol.event"
     listener:
       ack-mode: MANUAL_IMMEDIATE
-
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -58,17 +53,14 @@ app:
   jwt:
     secret: ${JWT_SECRET:fasol-super-secret-key-change-in-production-min-32-chars}
     expiration-ms: 86400000
-
   booking:
     cancel-deadline-hours: 24
     group-max-participants: 3
-
   kafka:
     topics:
       booking-events: booking-events
       notification-events: notification-events
       payment-events: payment-events
-
   outbox:
     poll-interval-ms: 2000
     batch-size: 100
@@ -98,23 +90,19 @@ logging:
 # ============================================================
 # Профиль RAILWAY — активируется через SPRING_PROFILES_ACTIVE=railway
 # Отключает Kafka autoconfiguration (Kafka на Railway не настроена).
-# OutboxEventPublisher продолжит работать, но при попытке отправить
-# событие получит NoSuchBeanDefinitionException — это безопасно,
-# т.к. outbox-записи просто останутся в БД с retry_count > max_retries.
+# Включает Flyway для создания таблиц при первом запуске.
 # ============================================================
 spring:
   config:
     activate:
       on-profile: railway
-
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
-
-  # Kafka-бины исключены, но значения оставляем чтобы app.kafka.topics.*
-  # резолвились без ошибок (они используются в OutboxEventPublisher через @Value)
   kafka:
     bootstrap-servers: "disabled:9092"
+  flyway:
+    enabled: true
 
 logging:
   level:
