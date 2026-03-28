@@ -51,6 +51,9 @@ spring:
       port: ${REDIS_PORT:6379}
 #      password: ${REDIS_PASSWORD:}
 
+server:
+  port: ${PORT:8080}
+
 app:
   jwt:
     secret: ${JWT_SECRET:fasol-super-secret-key-change-in-production-min-32-chars}
@@ -77,9 +80,9 @@ management:
     web:
       exposure:
         include: health,info,prometheus,metrics
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
   endpoint:
     health:
@@ -90,3 +93,30 @@ logging:
     com.fasol: WARN
     org.springframework.kafka: INFO
     org.springframework.security: INFO
+
+---
+# ============================================================
+# Профиль RAILWAY — активируется через SPRING_PROFILES_ACTIVE=railway
+# Отключает Kafka autoconfiguration (Kafka на Railway не настроена).
+# OutboxEventPublisher продолжит работать, но при попытке отправить
+# событие получит NoSuchBeanDefinitionException — это безопасно,
+# т.к. outbox-записи просто останутся в БД с retry_count > max_retries.
+# ============================================================
+spring:
+  config:
+    activate:
+      on-profile: railway
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+
+  # Kafka-бины исключены, но значения оставляем чтобы app.kafka.topics.*
+  # резолвились без ошибок (они используются в OutboxEventPublisher через @Value)
+  kafka:
+    bootstrap-servers: "disabled:9092"
+
+logging:
+  level:
+    com.fasol: INFO
+    org.springframework.kafka: WARN
