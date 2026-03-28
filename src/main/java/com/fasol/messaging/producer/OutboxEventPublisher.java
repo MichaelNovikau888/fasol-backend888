@@ -6,6 +6,7 @@ import com.fasol.repository.OutboxRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -19,9 +20,18 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+/**
+ * Outbox relay — публикует события из БД в Kafka.
+ *
+ * Аннотация @ConditionalOnBean(KafkaTemplate.class) означает, что весь бин
+ * не создаётся если KafkaAutoConfiguration исключён (профиль railway).
+ * Scheduled-задача просто не запускается — outbox-записи остаются в БД,
+ * но приложение не падает при старте.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnBean(KafkaTemplate.class)
 public class OutboxEventPublisher {
 
     private final OutboxRepository outboxRepository;
