@@ -5,23 +5,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
-/**
- * Обрабатывает события бронирования для отправки уведомлений.
- *
- * Manual acknowledgment — offset подтверждаем только после успешной обработки.
- * При ошибке перекладываем в DLQ (Dead Letter Queue) — не блокируем партицию.
- *
- * На собеседовании: "Без manual ack при краше consumer'а потеряем событие.
- * С manual ack при рестарте получим его снова — consumer идемпотентен."
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
+@ConditionalOnBean(KafkaTemplate.class)
 public class NotificationConsumer {
 
     private final ObjectMapper objectMapper;
@@ -35,7 +28,7 @@ public class NotificationConsumer {
             groupId = "notification-group"
     )
     public void handleBookingEvent(ConsumerRecord<String, String> record,
-                                    Acknowledgment ack) {
+                                   Acknowledgment ack) {
         log.debug("Received event key={} offset={}", record.key(), record.offset());
         try {
             String eventType = objectMapper.readTree(record.value())
@@ -47,22 +40,19 @@ public class NotificationConsumer {
                 default -> log.warn("Unknown eventType: {}", eventType);
             }
 
-            ack.acknowledge(); // подтверждаем только при успехе
+            ack.acknowledge();
         } catch (Exception e) {
             log.error("Failed to process event at offset {}", record.offset(), e);
             sendToDlq(record);
-            ack.acknowledge(); // подтверждаем, чтобы не застрять на одном сообщении
+            ack.acknowledge();
         }
     }
 
     private void handleCreated(String payload) {
-        // В реальном проекте: emailService.sendBookingConfirmation(...)
-        // smsService.sendReminder(bookingDate - 24h)
         log.info("Booking created notification: {}", payload);
     }
 
     private void handleCancelled(String payload) {
-        // emailService.sendCancellationNotice(...)
         log.info("Booking cancelled notification: {}", payload);
     }
 
