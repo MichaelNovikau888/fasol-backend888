@@ -2,6 +2,7 @@ package com.fasol.config;
 
 import com.fasol.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -20,7 +21,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -29,6 +32,16 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
+
+    /**
+     * Список разрешённых origins через переменную окружения CORS_ALLOWED_ORIGINS.
+     * Формат: через запятую, без пробелов.
+     * Пример: https://learn-and-discover.vercel.app,https://my-preview.vercel.app
+     *
+     * Если переменная не задана — используются origins по умолчанию (локалка + Vercel prod).
+     */
+    @Value("${cors.allowed-origins:http://localhost:5173,https://learn-and-discover.vercel.app}")
+    private String allowedOriginsRaw;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -41,14 +54,14 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/courses/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/site-content/**").permitAll()
-                        .requestMatchers("/api/trial-requests").permitAll()  // форма с лендинга
-                        .requestMatchers("/api/payments/webhook").permitAll() // Stripe webhook — без JWT
+                        .requestMatchers("/api/trial-requests").permitAll()
+                        .requestMatchers("/api/payments/webhook").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/prometheus").permitAll()
 
                         // Студент
                         .requestMatchers("/api/bookings/**").hasAnyRole("STUDENT", "ADMIN")
                         .requestMatchers("/api/dashboard/**").hasAnyRole("STUDENT", "ADMIN")
-                        .requestMatchers("/api/profile/**").authenticated()  // любая роль — свой профиль
+                        .requestMatchers("/api/profile/**").authenticated()
 
                         // Преподаватель
                         .requestMatchers("/api/teacher/**").hasAnyRole("TEACHER", "ADMIN")
@@ -77,15 +90,24 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsSource() {
+        // Парсим origins из переменной окружения (или дефолтных значений)
+        List<String> origins = Arrays.stream(allowedOriginsRaw.split(","))
+                .map(String::trim)
+                // Убираем trailing slash — Spring CORS сравнивает строго
+                .map(o -> o.endsWith("/") ? o.substring(0, o.length() - 1) : o)
+                .filter(o -> !o.isEmpty())
+                .collect(Collectors.toList());
+
         var config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        // ВАЖНО: используем setAllowedOrigins, НЕ setAllowedOriginPatterns —
+        // оба метода нельзя смешивать, иначе Spring выбросит IllegalArgumentException
+        config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",                    // локально
-                "https://learn-and-discover.vercel.app/"              // Vercel
-        ));
+        // Preflight cache: 1 час
+        config.setMaxAge(3600L);
+
         var source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
