@@ -15,5 +15,5 @@ ALTER TABLE user_roles
     USING role::text::approle;
 
 -- 3. Создаём CAST'ы, чтобы Hibernate мог работать без ошибок
-CREATE CAST (varchar AS approle) WITH INOUT AS IMPLICIT;
-CREATE CAST (approle AS varchar) WITH INOUT AS IMPLICIT;
+CREATE CAST (varchar AS app_role) WITH INOUT AS IMPLICIT;
+CREATE CAST (app_role AS varchar) WITH INOUT AS IMPLICIT;

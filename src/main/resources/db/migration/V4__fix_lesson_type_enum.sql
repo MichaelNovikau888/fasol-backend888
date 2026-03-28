@@ -14,5 +14,5 @@ ALTER TABLE schedules
     USING lesson_type::text::lessontype;
 
 -- 3. Создаём CAST'ы для Hibernate
-CREATE CAST (varchar AS lessontype) WITH INOUT AS IMPLICIT;
-CREATE CAST (lessontype AS varchar) WITH INOUT AS IMPLICIT;
+CREATE CAST (varchar AS lesson_type) WITH INOUT AS IMPLICIT;
+CREATE CAST (lesson_type AS varchar) WITH INOUT AS IMPLICIT;

@@ -14,5 +14,5 @@ ALTER TABLE bookings
     USING status::text::bookingstatus;
 
 -- 3. Создаём CAST'ы для Hibernate (@JdbcTypeCode NAMED_ENUM)
-CREATE CAST (varchar AS bookingstatus) WITH INOUT AS IMPLICIT;
-CREATE CAST (bookingstatus AS varchar) WITH INOUT AS IMPLICIT;
+CREATE CAST (varchar AS booking_status) WITH INOUT AS IMPLICIT;
+CREATE CAST (booking_status AS varchar) WITH INOUT AS IMPLICIT;
